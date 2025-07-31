@@ -1,7 +1,7 @@
 {
-  "name": "retro-assembly-vendors",
-  "version": "1.20.0-20250317101003",
-  "description": "Upstream files for Retro Assembly",
+  "name": "retroassembly-custom-cores",
+  "version": "1.21.0-20250731140059",
+  "description": "Custom cores for RetroAssembly",
   "keywords": [
     "retroarch",
     "emulator",

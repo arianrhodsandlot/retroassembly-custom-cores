@@ -67,7 +67,7 @@ function dist_core()  {
 }
 
 clean_up_retroarch_dir
-activate_emscripten '3.1.50'
+activate_emscripten '3.1.74'
 cores=(a5200 fbneo prosystem stella2014)
 for core in "${cores[@]}"; do
   build_core_bitcode "$core"

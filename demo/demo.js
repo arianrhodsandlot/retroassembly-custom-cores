@@ -6,10 +6,10 @@ const runButton = document.querySelector('#run')
 const select = document.querySelector('#core')
 
 const rom = []
-async function addRom() {
+async function addRom () {
   const [fileHandle] = await showOpenFilePicker()
   const file = await fileHandle.getFile()
-  rom.push(file)
+  rom.push({ fileName: file.name, fileContent: file })
 }
 
 const bios = []
