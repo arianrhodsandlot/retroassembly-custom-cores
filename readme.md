@@ -1,18 +1,17 @@
-# Retro Assembly vendors
+# RetroAssembly custom cores
 
-Scripts for build upstream files for [Retro Assembly](https://github.com/arianrhodsandlot/retro-assembly).
+Scripts for build upstream files for [RetroAssembly](https://github.com/arianrhodsandlot/retroassembly).
 
 ## Usage
 Our work contains three steps:
-1. Apply patches to some upstream repository (currently there is only RetroArch need to be patched), for better usage inside browser or bug fixes.
-2. Compile RetroArch cores with Emscripten following instructions indroduced here: [RetroArch Web Player](https://github.com/libretro/RetroArch/blob/master/pkg/emscripten/README.md).
-3. Archive the wasm and js files.
+1. Compile RetroArch cores with Emscripten following instructions indroduced here: [RetroArch Web Player](https://github.com/libretro/RetroArch/blob/master/pkg/emscripten/README.md).
+2. Archive the wasm and js files.
 
 By running `make` the above steps will automatically run sequentially.
 
 Then all RetroArch cores will be built and archived in zip format. All artifacts will be put inside a `dist` directory.
 
-In addition, RetroArch cores will be uploaded to [NPM](https://www.npmjs.com/package/retro-assembly-vendors) for further usage in Retro Assembly via [jsDelivr](https://www.jsdelivr.com), a public CDN service that can delegate access to NPM files.
+In addition, RetroArch cores will be uploaded to [NPM](https://www.npmjs.com/package/retroassembly-vendors) for further usage in Retro Assembly via [jsDelivr](https://www.jsdelivr.com), a public CDN service that can delegate access to NPM files.
 
 ## Debugging cores
 1. Start a static HTTP server at the root of the project. Maybe `python3 -m http.server` is a convenient choice.

@@ -6,4 +6,4 @@ wd=$(pwd)
 dist_dir=$wd/dist
 
 cd "$dist_dir"
-zip -r9 retro-assembly-vendors.zip ./*
+zip -r9 retroassembly-custom-cores.zip ./*
