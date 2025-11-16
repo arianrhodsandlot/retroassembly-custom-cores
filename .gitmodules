@@ -7,9 +7,6 @@
 [submodule "modules/cores/a5200"]
 	path = modules/cores/a5200
 	url = https://github.com/libretro/a5200
-[submodule "modules/cores/fbneo"]
-	path = modules/cores/fbneo
-	url = https://github.com/libretro/FBNeo
 [submodule "modules/cores/prosystem"]
 	path = modules/cores/prosystem
 	url = https://github.com/libretro/prosystem-libretro
