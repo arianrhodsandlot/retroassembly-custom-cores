@@ -6,4 +6,11 @@ wd=$(pwd)
 dist_dir=$wd/dist
 
 cd "$dist_dir"
-zip -r9 retroassembly-custom-cores.zip ./*
+
+for file in cores/*.js; do
+  filename=$(basename "$file")
+  corename="${filename%.*}"
+  zip -r9 "cores/${corename}.zip" "cores/${corename}.js" "cores/${corename}.wasm"
+done
+
+rm cores/*.js cores/*.wasm
