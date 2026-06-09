@@ -7,6 +7,7 @@ emsdk_dir=$wd/modules/emsdk
 cores_dir=$wd/modules/cores
 retroarch_dir=$wd/modules/retroarch
 cores_dist_dir=$wd/dist/cores
+patches_dir=$wd/patches
 
 mkdir -p "$cores_dist_dir"
 
@@ -31,6 +32,66 @@ function activate_emscripten() {
   if ! command -v python &> /dev/null; then
     ln -s "$EMSDK_PYTHON" "$python_bin_dir"/python
   fi
+}
+
+# Return the patches required for a given core (space-separated patch basenames)
+function core_patches() {
+  case "$1" in
+    mupen64plus-libretro-nx) echo "mupen64plus retroarch" ;;
+  esac
+}
+
+# Return the target directory for a given patch basename
+function patch_target() {
+  case "$1" in
+    mupen64plus) echo "$cores_dir/mupen64plus-libretro-nx" ;;
+    retroarch)   echo "$retroarch_dir" ;;
+  esac
+}
+
+# Apply patches for a given core (no-op if the core requires no patches)
+function apply_patches() {
+  local core=$1
+  local patches
+  patches=$(core_patches "$core")
+  if [ -z "$patches" ]; then
+    return 0
+  fi
+  echo "Applying patches for $core..."
+  for name in $patches; do
+    local target
+    target=$(patch_target "$name")
+    if [ -n "$target" ] && [ -d "$target" ]; then
+      echo "  -> $name -> $target"
+      cd "$target"
+      git checkout .
+      git clean -f
+      git apply "$patches_dir/$name.patch"
+    fi
+  done
+  cd "$wd"
+}
+
+# Revert patches for a given core (no-op if the core requires no patches)
+function revert_patches() {
+  local core=$1
+  local patches
+  patches=$(core_patches "$core")
+  if [ -z "$patches" ]; then
+    return 0
+  fi
+  echo "Reverting patches for $core..."
+  for name in $patches; do
+    local target
+    target=$(patch_target "$name")
+    if [ -n "$target" ] && [ -d "$target" ]; then
+      echo "  -> $name -> $target"
+      cd "$target"
+      git checkout .
+      git clean -fd
+    fi
+  done
+  cd "$wd"
 }
 
 function build_core_bitcode() {
@@ -60,16 +121,26 @@ function dist_core()  {
 
   # compile bitcode (.bc) files to wasm files
   cd "$retroarch_dir"
-  emmake make -f Makefile.emscripten LIBRETRO="$core" -j all
+  async_flags=""
+  if [ "$core" = "mupen64plus-libretro-nx" ]; then
+    async_flags="ASYNC=1 EXIT_RUNTIME=1 ASYNCIFY_STACK_SIZE=131072 STACK_SIZE=8388608 INITIAL_HEAP=268435456 HAVE_OPENGLES3=1"
+  fi
+  emmake make -f Makefile.emscripten LIBRETRO="$core" $async_flags -j all
   # move compiled js/wasm files to our dist directory
   mv "$retroarch_dir"/*.{js,wasm} "$cores_dist_dir"
   echo "Compile bitcode files finished!"
 }
 
+if [ $# -eq 0 ]; then
+  echo "Usage: $0 <core...>"
+  exit 1
+fi
+
 clean_up_retroarch_dir
 activate_emscripten '3.1.74'
-cores=(a5200 prosystem stella2014)
-for core in "${cores[@]}"; do
+for core in "$@"; do
+  apply_patches "$core"
   build_core_bitcode "$core"
   dist_core "$core"
+  revert_patches "$core"
 done

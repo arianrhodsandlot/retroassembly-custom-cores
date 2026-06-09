@@ -13,3 +13,6 @@
 [submodule "modules/cores/stella2014"]
 	path = modules/cores/stella2014
 	url = https://github.com/libretro/stella2014-libretro
+[submodule "modules/cores/mupen64plus-libretro-nx"]
+	path = modules/cores/mupen64plus-libretro-nx
+	url = https://github.com/libretro/mupen64plus-libretro-nx.git

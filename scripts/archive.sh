@@ -12,5 +12,3 @@ for file in cores/*.js; do
   corename="${filename%.*}"
   zip -r9 "cores/${corename}.zip" "cores/${corename}.js" "cores/${corename}.wasm"
 done
-
-rm cores/*.js cores/*.wasm

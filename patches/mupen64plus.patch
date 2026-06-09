@@ -1,0 +1,255 @@
+diff --git a/GLideN64/src/Graphics/OpenGLContext/GLSL/glsl_CombinerProgramBuilderCommon.cpp b/GLideN64/src/Graphics/OpenGLContext/GLSL/glsl_CombinerProgramBuilderCommon.cpp
+index a4c52ed..a7f5714 100644
+--- a/GLideN64/src/Graphics/OpenGLContext/GLSL/glsl_CombinerProgramBuilderCommon.cpp
++++ b/GLideN64/src/Graphics/OpenGLContext/GLSL/glsl_CombinerProgramBuilderCommon.cpp
+@@ -210,7 +210,11 @@ public:
+ 			;
+ 		} else if (_glinfo.isGLESX) {
+ 			std::stringstream ss;
++#ifdef EMSCRIPTEN
++			ss << "#version 300 es " << std::endl;
++#else
+ 			ss << "#version " << Utils::to_string(_glinfo.majorVersion) << Utils::to_string(_glinfo.minorVersion) << "0 es " << std::endl;
++#endif
+ 			if (_glinfo.noPerspective)
+ 				ss << "#extension GL_NV_shader_noperspective_interpolation : enable" << std::endl;
+ 			if (_glinfo.dual_source_blending)
+diff --git a/GLideN64/src/Graphics/OpenGLContext/ThreadedOpenGl/atomicops.h b/GLideN64/src/Graphics/OpenGLContext/ThreadedOpenGl/atomicops.h
+index 1595ec7..47b7b0d 100644
+--- a/GLideN64/src/Graphics/OpenGLContext/ThreadedOpenGl/atomicops.h
++++ b/GLideN64/src/Graphics/OpenGLContext/ThreadedOpenGl/atomicops.h
+@@ -530,6 +530,9 @@ namespace moodycamel
+ 
+ 			bool timed_wait(std::uint64_t usecs) AE_NO_TSAN
+ 			{
++#if defined(EMSCRIPTEN) && !defined(__EMSCRIPTEN_PTHREADS__)
++				return try_wait();
++#else
+ 				struct timespec ts;
+ 				const int usecs_in_1_sec = 1000000;
+ 				const int nsecs_in_1_sec = 1000000000;
+@@ -548,6 +551,7 @@ namespace moodycamel
+ 					rc = sem_timedwait(&m_sema, &ts);
+ 				} while (rc == -1 && errno == EINTR);
+ 				return !(rc == -1 && errno == ETIMEDOUT);
++#endif
+ 			}
+ 
+ 			void signal() AE_NO_TSAN
+diff --git a/Makefile b/Makefile
+index a817054..dc309dd 100644
+--- a/Makefile
++++ b/Makefile
+@@ -543,32 +543,11 @@ else ifneq (,$(findstring android,$(platform)))
+ # emscripten
+ else ifeq ($(platform), emscripten)
+    TARGET := $(TARGET_NAME)_libretro_emscripten.bc
+-   GLES := 1
++   STATIC_LINKING = 1
++   GLES3 = 1
++   GLES :=
+    WITH_DYNAREC :=
+    CPUFLAGS += -DEMSCRIPTEN -DNO_ASM -s USE_ZLIB=1
+-   PLATCFLAGS += \
+-      -Dsinc_resampler=glupen_sinc_resampler \
+-      -DCC_resampler=glupen_CC_resampler \
+-      -Drglgen_symbol_map=glupen_rglgen_symbol_map \
+-      -Drglgen_resolve_symbols_custom=glupen_rglgen_resolve_symbols_custom \
+-      -Drglgen_resolve_symbols=glupen_rglgen_resolve_symbols \
+-      -Dmemalign_alloc=glupen_memalign_alloc \
+-      -Dmemalign_free=glupen_memalign_free \
+-      -Dmemalign_alloc_aligned=glupen_memalign_alloc_aligned \
+-      -Daudio_resampler_driver_find_handle=glupen_audio_resampler_driver_find_handle \
+-      -Daudio_resampler_driver_find_ident=glupen_audio_resampler_driver_find_ident \
+-      -Drarch_resampler_realloc=glupen_rarch_resampler_realloc \
+-      -Dconvert_float_to_s16_C=glupen_convert_float_to_s16_C \
+-      -Dconvert_float_to_s16_init_simd=glupen_convert_float_to_s16_init_simd \
+-      -Dconvert_s16_to_float_C=glupen_convert_s16_to_float_C \
+-      -Dconvert_s16_to_float_init_simd=glupen_convert_s16_to_float_init_simd \
+-      -Dcpu_features_get_perf_counter=glupen_cpu_features_get_perf_counter \
+-      -Dcpu_features_get_time_usec=glupen_cpu_features_get_time_usec \
+-      -Dcpu_features_get_core_amount=glupen_cpu_features_get_core_amount \
+-      -Dcpu_features_get=glupen_cpu_features_get \
+-      -Dffs=glupen_ffs \
+-      -Dstrlcpy_retro__=glupen_strlcpy_retro__ \
+-      -Dstrlcat_retro__=glupen_strlcat_retro__
+    CC = emcc
+    CXX = em++
+    HAVE_NEON = 0
+@@ -657,6 +636,11 @@ endif
+ # Use -fcommon
+ CPUOPTS += -fcommon
+ 
++# Workaround: clang 20 crashes with emitGlobalVariable on large structs with -fcommon
++ifeq ($(platform), emscripten)
++   CPUOPTS := $(subst -fcommon,-fno-common,$(CPUOPTS))
++endif
++
+ # set C/C++ standard to use
+ CFLAGS += -std=gnu11 -D_CRT_SECURE_NO_WARNINGS -Wno-discarded-qualifiers
+ CXXFLAGS += -std=gnu++11 -D_CRT_SECURE_NO_WARNINGS
+@@ -709,6 +693,9 @@ $(AWK_DEST_DIR)/asm_defines_nasm.h: $(ASM_DEFINES_OBJ)
+ %.o: %.c
+ 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+ 
++mupen64plus-core/src/api/debugger.o: mupen64plus-core/src/api/debugger.c
++	$(CC) $(CPPFLAGS) $(CFLAGS) -O1 -c $< -o $@
++
+ $(RSPDIR_PARALLEL)/lightning/lib/lightning.o: $(RSPDIR_PARALLEL)/lightning/lib/lightning.c
+ 	$(CC) $(CPPFLAGS) $(CFLAGS) -DHAVE_MMAP=1 -c $< -o $@
+ 
+diff --git a/Makefile.common b/Makefile.common
+index 72aef3a..ded727a 100644
+--- a/Makefile.common
++++ b/Makefile.common
+@@ -505,7 +505,9 @@ ifeq ($(GLES3),1)
+ else ifeq ($(GLES),1)
+ 	GLFLAGS += -DEGL -DHAVE_OPENGLES -DHAVE_OPENGLES2 -DGLES2
+ 	LDFLAGS += $(EGL_LIB)
++ifneq ($(STATIC_LINKING), 1)
+ 	SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_es2.c
++endif
+ 
+ 	ifeq ($(ANDROID),1)
+ 		SOURCES_CXX += $(VIDEODIR_GLIDEN64)/src/Graphics/OpenGLContext/GraphicBuffer/GraphicBufferWrapper.cpp \
+@@ -518,4 +520,6 @@ else
+ 	GLFLAGS += -DHAVE_OPENGL
+ 	SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/glsym_gl.c
+ endif
++ifneq ($(STATIC_LINKING), 1)
+ SOURCES_C += $(LIBRETRO_COMM_DIR)/glsym/rglgen.c
++endif
+diff --git a/libretro-common/libco/libco.c b/libretro-common/libco/libco.c
+index e73003e..54b6f6b 100644
+--- a/libretro-common/libco/libco.c
++++ b/libretro-common/libco/libco.c
+@@ -21,7 +21,9 @@ void genode_free_secondary_stack(void *stack);
+     #include "fiber.c"
+   #endif
+ #elif defined __GNUC__
+-  #ifdef _WIN32
++  #ifdef EMSCRIPTEN
++    #include "emscripten_fiber.c"
++  #elif defined _WIN32
+     #include "fiber.c"
+   #elif defined __i386__
+     #include "x86.c"
+diff --git a/libretro/libretro.c b/libretro/libretro.c
+index 7665666..2750f2a 100644
+--- a/libretro/libretro.c
++++ b/libretro/libretro.c
+@@ -445,7 +445,11 @@ static void emu_step_initialize(void)
+     plugin_connect_all();
+ }
+ 
++#ifdef EMSCRIPTEN
++static void EmuThreadFunction(void)
++#else
+ static void* EmuThreadFunction(void* param)
++#endif
+ {
+     uint32_t netplay_port = 0;
+     uint16_t netplay_player = 1;
+@@ -489,7 +493,11 @@ static void* EmuThreadFunction(void* param)
+         emuThreadRunning = false;
+     }
+ 
++#ifdef EMSCRIPTEN
++    return;
++#else
+     return NULL;
++#endif
+ }
+ 
+ static void reinit_gfx_plugin(void)
+@@ -2052,11 +2060,15 @@ void retro_run (void)
+     {
+        if(EnableThreadedRenderer)
+        {
+-          if(!emuThreadRunning)
+-          {
+-             pthread_create(&emuThread, NULL, &EmuThreadFunction, NULL);
+-             emuThreadRunning = true;
+-          }
++           if(!emuThreadRunning)
++           {
++#ifdef EMSCRIPTEN
++              pthread_create(&emuThread, NULL, (void* (*)(void*))&EmuThreadFunction, NULL);
++#else
++              pthread_create(&emuThread, NULL, &EmuThreadFunction, NULL);
++#endif
++              emuThreadRunning = true;
++           }
+        }
+        
+        glsm_ctl(GLSM_CTL_STATE_BIND, NULL);
+diff --git a/libretro-common/libco/emscripten_fiber.c b/libretro-common/libco/emscripten_fiber.c
+new file mode 100644
+index 0000000..c154e6d
+--- /dev/null
++++ b/libretro-common/libco/emscripten_fiber.c
+@@ -0,0 +1,64 @@
++/*
++  libco.emscripten (2020-02-27)
++  authors: Toad King
++  license: public domain
++*/
++
++#define LIBCO_C
++#include <libco.h>
++#include <stdlib.h>
++#include <stddef.h>
++#include <malloc.h>
++#include <emscripten/fiber.h>
++
++#define ASYNCIFY_STACK_SIZE (131072)
++
++static emscripten_fiber_t *co_active_ = NULL;
++
++static void co_thunk(void *coentry)
++{
++   ((void (*)(void))coentry)();
++}
++
++static void co_init(void)
++{
++   if (!co_active_)
++   {
++      emscripten_fiber_t *co_primary = calloc(1, sizeof(emscripten_fiber_t));
++      void *asyncify_stack = malloc(ASYNCIFY_STACK_SIZE);
++
++      emscripten_fiber_init_from_current_context(co_primary, asyncify_stack, ASYNCIFY_STACK_SIZE);
++      co_active_ = co_primary;
++   }
++}
++
++cothread_t co_active(void)
++{
++   co_init();
++   return co_active_;
++}
++
++cothread_t co_create(unsigned int stacksize, void (*coentry)(void))
++{
++   co_init();
++
++   emscripten_fiber_t *fiber = calloc(1, sizeof(emscripten_fiber_t));
++   void *asyncify_stack = malloc(ASYNCIFY_STACK_SIZE);
++   void *c_stack = memalign(16, stacksize);
++   emscripten_fiber_init(fiber, co_thunk, coentry, c_stack, stacksize, asyncify_stack, ASYNCIFY_STACK_SIZE);
++
++   return (cothread_t)fiber;
++}
++
++void co_delete(cothread_t cothread)
++{
++   free(cothread);
++}
++
++void co_switch(cothread_t cothread)
++{
++   emscripten_fiber_t *old_fiber = co_active_;
++   co_active_ = (emscripten_fiber_t *)cothread;
++
++   emscripten_fiber_swap(old_fiber, co_active_);
++}
