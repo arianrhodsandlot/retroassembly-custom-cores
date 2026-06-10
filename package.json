@@ -1,13 +1,16 @@
 {
   "name": "retroassembly-custom-cores",
-  "version": "1.22.2-20260610132740",
+  "version": "1.22.2-20260610140011",
   "description": "Custom cores for RetroAssembly",
   "keywords": [
     "emscripten",
     "emulator",
     "retroarch"
   ],
-  "repository": "arianrhodsandlot/retroassembly-custom-cores",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arianrhodsandlot/retroassembly-custom-cores.git"
+  },
   "license": "GPL-3.0",
   "author": {
     "name": "arianrhodsandlot",
