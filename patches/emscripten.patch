@@ -1,0 +1,14 @@
+--- a/src/library_webgl.js
++++ b/src/library_webgl.js
+@@ -4136,8 +4136,7 @@
+   glMapBufferRange__deps: ['$emscriptenWebGLGetBufferBinding', '$emscriptenWebGLValidateMapBufferTarget', 'malloc'],
+   glMapBufferRange: (target, offset, length, access) => {
+-    if ((access & (0x1/*GL_MAP_READ_BIT*/ | 0x20/*GL_MAP_UNSYNCHRONIZED_BIT*/)) != 0) {
+-      err("glMapBufferRange access does not support MAP_READ or MAP_UNSYNCHRONIZED");
+-      return 0;
+-    }
++    // Strip unsupported flags instead of failing
++    access &= ~(0x1/*GL_MAP_READ_BIT*/ | 0x20/*GL_MAP_UNSYNCHRONIZED_BIT*/);
++    if (access == 0) return 0;
+ 
+     if ((access & 0x2/*GL_MAP_WRITE_BIT*/) == 0) {

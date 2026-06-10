@@ -12,9 +12,9 @@ patches_dir=$wd/patches
 mkdir -p "$cores_dist_dir"
 
 function clean_up_retroarch_dir() {
-  # remove early compiled outputs
+  # remove early compiled outputs, preserve bitcode file if it exists
   cd "$retroarch_dir"
-  git clean -xf
+  git clean -xfd -e libretro_emscripten.bc
 }
 
 function activate_emscripten() {
@@ -37,7 +37,7 @@ function activate_emscripten() {
 # Return the patches required for a given core (space-separated patch basenames)
 function core_patches() {
   case "$1" in
-    mupen64plus-libretro-nx) echo "mupen64plus retroarch" ;;
+    mupen64plus-libretro-nx) echo "mupen64plus retroarch emscripten" ;;
   esac
 }
 
@@ -46,6 +46,7 @@ function patch_target() {
   case "$1" in
     mupen64plus) echo "$cores_dir/mupen64plus-libretro-nx" ;;
     retroarch)   echo "$retroarch_dir" ;;
+    emscripten)  echo "$emsdk_dir/upstream/emscripten" ;;
   esac
 }
 
@@ -64,8 +65,10 @@ function apply_patches() {
     if [ -n "$target" ] && [ -d "$target" ]; then
       echo "  -> $name -> $target"
       cd "$target"
-      git checkout .
-      git clean -f
+        git reset --hard
+      if [ "$name" != "emscripten" ]; then
+        git clean -fd
+      fi
       git apply "$patches_dir/$name.patch"
     fi
   done
@@ -87,8 +90,13 @@ function revert_patches() {
     if [ -n "$target" ] && [ -d "$target" ]; then
       echo "  -> $name -> $target"
       cd "$target"
-      git checkout .
-      git clean -fd
+      if [ "$name" = "emscripten" ]; then
+        # emscripten files are git-ignored; explicitly reverse the patch
+        git apply --reverse "$patches_dir/$name.patch"
+      else
+        git reset --hard
+        git clean -fd
+      fi
     fi
   done
   cd "$wd"
@@ -141,6 +149,7 @@ activate_emscripten '3.1.74'
 for core in "$@"; do
   apply_patches "$core"
   build_core_bitcode "$core"
+  clean_up_retroarch_dir
   dist_core "$core"
   revert_patches "$core"
 done
