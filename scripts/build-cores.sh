@@ -37,14 +37,14 @@ function activate_emscripten() {
 # Return the patches required for a given core (space-separated patch basenames)
 function core_patches() {
   case "$1" in
-    mupen64plus-libretro-nx) echo "mupen64plus retroarch" ;;
+    mupen64plus_next) echo "mupen64plus retroarch" ;;
   esac
 }
 
 # Return the target directory for a given patch basename
 function patch_target() {
   case "$1" in
-    mupen64plus) echo "$cores_dir/mupen64plus-libretro-nx" ;;
+    mupen64plus) echo "$cores_dir/mupen64plus_next" ;;
     retroarch)   echo "$retroarch_dir" ;;
   esac
 }
@@ -122,7 +122,7 @@ function dist_core()  {
   # compile bitcode (.bc) files to wasm files
   cd "$retroarch_dir"
   async_flags=""
-  if [ "$core" = "mupen64plus-libretro-nx" ]; then
+  if [ "$core" = "mupen64plus_next" ]; then
     async_flags="ASYNC=1 EXIT_RUNTIME=1 ASYNCIFY_STACK_SIZE=131072 STACK_SIZE=8388608 INITIAL_HEAP=268435456 HAVE_OPENGLES3=1"
   fi
   emmake make -f Makefile.emscripten LIBRETRO="$core" $async_flags -j all

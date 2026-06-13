@@ -14,6 +14,3 @@ cd "$wd"
 version="$retroarch_version-$current_time"
 echo "$version"
 sed -i '' "s/\"version\": \".*\"/\"version\": \"$version\"/" package.json
-git add .
-git commit -m "chore: bump version"
-git tag "v$version"

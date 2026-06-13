@@ -1,6 +1,6 @@
 .PHONY: all
 
-CORES ?= a5200 prosystem stella2014 mupen64plus-libretro-nx
+CORES ?= a5200 prosystem stella2014 mupen64plus_next
 
 all: build_cores archive
 
