@@ -37,7 +37,7 @@ function activate_emscripten() {
 # Return the patches required for a given core (space-separated patch basenames)
 function core_patches() {
   case "$1" in
-    mupen64plus-libretro-nx) echo "mupen64plus retroarch emscripten" ;;
+    mupen64plus-libretro-nx) echo "mupen64plus retroarch" ;;
   esac
 }
 
@@ -46,7 +46,6 @@ function patch_target() {
   case "$1" in
     mupen64plus) echo "$cores_dir/mupen64plus-libretro-nx" ;;
     retroarch)   echo "$retroarch_dir" ;;
-    emscripten)  echo "$emsdk_dir/upstream/emscripten" ;;
   esac
 }
 
@@ -66,9 +65,7 @@ function apply_patches() {
       echo "  -> $name -> $target"
       cd "$target"
         git reset --hard
-      if [ "$name" != "emscripten" ]; then
-        git clean -fd
-      fi
+      git clean -fd
       git apply "$patches_dir/$name.patch"
     fi
   done
@@ -90,13 +87,8 @@ function revert_patches() {
     if [ -n "$target" ] && [ -d "$target" ]; then
       echo "  -> $name -> $target"
       cd "$target"
-      if [ "$name" = "emscripten" ]; then
-        # emscripten files are git-ignored; explicitly reverse the patch
-        git apply --reverse "$patches_dir/$name.patch"
-      else
-        git reset --hard
-        git clean -fd
-      fi
+      git reset --hard
+      git clean -fd
     fi
   done
   cd "$wd"
